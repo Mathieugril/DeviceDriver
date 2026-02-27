@@ -8,6 +8,8 @@ MODULE_DESCRIPTION("Message handling system");
 
 static int major;
 
+
+
 static ssize_t my_read(struct file *f, char __user *u, size_t l, loff_t *o)
 {
 	printk("main.c - read is called\n");
@@ -22,7 +24,7 @@ static struct file_operations fops = {
 
 static int __init my_init(void) {
 
-	major = registor_chrdev(0, "main.c", &fops);
+	major = register_chrdev(0, "main.c", &fops);
 	if(major < 0) {
 	  printk("main.c - [ERROR] registering chardev");
 	  return major;
@@ -33,7 +35,7 @@ static int __init my_init(void) {
 
 static void __exit my_exit(void)
 {
-	unregister(major, "main.c");
+	unregister_chrdev(major, "main.c");
 
 }
 module_init(my_init);
