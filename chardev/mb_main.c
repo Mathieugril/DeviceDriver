@@ -7,11 +7,13 @@
 static int major;
 static int mb_open(struct inode *inode, struct file *file); 
 static int mb_release(struct inode *inode, struct file *file); 
+extern ssize_t mb_read (struct file *file, char __user *buffer, size_t length, loff_t *offset);
+extern ssize_t mb_write (struct file *file, const char __user *buffer, size_t length, loff_t *offset);
 
 
 static struct file_operations mb_fops = {
-	//.read = mb_read,
-	//.write = mb_write,
+	.read = mb_read,
+	.write = mb_write,
 	.open = mb_open,
 	.release = mb_release,	
 

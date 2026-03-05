@@ -1,7 +1,7 @@
 #ifndef MAILBOX_H
 #define MAILBOX_H
 
-#include <linux/cdev.h>
+#include <linux/kernel.h>
 
 
 #define CHANNELS_NUM 5
