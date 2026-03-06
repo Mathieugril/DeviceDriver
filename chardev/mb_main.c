@@ -3,6 +3,7 @@
 #include <linux/init.h>
 #include <linux/fs.h>
 
+mb_build mb_build;
 
 static int major;
 static int mb_open(struct inode *inode, struct file *file); 
