@@ -1,6 +1,6 @@
 
 obj-m += mailbox.o
-mailbox-objs := mb_main.o mb_rw.o
+mailbox-objs := mb_main.o mb_rw.o mb_proc.o 
 
 
 all: 

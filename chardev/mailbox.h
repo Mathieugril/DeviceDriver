@@ -1,3 +1,5 @@
+#define DEBUG
+
 #ifndef MAILBOX_H
 #define MAILBOX_H
 
@@ -5,6 +7,26 @@
 #include <linux/wait.h>
 #include <linux/kernel.h>
 #include <linux/spinlock.h>
+
+#include <linux/module.h>
+#include <linux/proc_fs.h>  
+#include <linux/sched.h>  
+#include <linux/uaccess.h>
+ 
+#include <linux/version.h>  
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
+ 
+#include <linux/minmax.h>  
+#endif  
+  
+
+ #define PROCFS_MAX_SIZE 2048UL
+ 
+// #define PROCFS_ENTRY_FILENAME "mailbox"  
+static struct proc_dir_entry *our_proc_file;
+ 
+static char procfs_buffer[PROCFS_MAX_SIZE];  
+static unsigned long procfs_buffer_size = 0;
 
 
 #define CHANNELS_NUM 5
