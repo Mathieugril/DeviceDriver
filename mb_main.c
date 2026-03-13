@@ -3,6 +3,8 @@
 #include <linux/init.h>
 #include <linux/fs.h>
 #include <linux/kernel.h>
+#include <linux/version.h>
+#include <linux/proc_fs.h>
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0)
  
@@ -17,6 +19,7 @@ static ssize_t procfs_write(struct file *file, const char __user *buffer, size_t
 static int procfs_open(struct inode *inode, struct file *file);
 static int procfs_close(struct inode *inode, struct file *file);
 
+
 #ifdef HAVE_PROC_OPS  
 static struct proc_ops file_ops_4_our_proc_file = {
  
@@ -28,8 +31,7 @@ static struct proc_ops file_ops_4_our_proc_file = {
 };
  
 #else  
-static const struct file_operations file_ops_4_our_proc_file = {static void show_bargraph(channel_stats_s *stats, int count)
- 
+static const struct file_operations file_ops_4_our_proc_file = {  
     .read = procfs_read,  
     .write = procfs_write,  
     .open = procfs_open,
@@ -45,6 +47,7 @@ static int mb_open(struct inode *inode, struct file *file);
 static int mb_release(struct inode *inode, struct file *file); 
 extern ssize_t mb_read (struct file *file, char __user *buffer, size_t length, loff_t *offset);
 extern ssize_t mb_write (struct file *file, const char __user *buffer, size_t length, loff_t *offset);
+extern long mb_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
 
 
 static struct file_operations mb_fops = {
@@ -52,7 +55,7 @@ static struct file_operations mb_fops = {
 	.write = mb_write,
 	.open = mb_open,
 	.release = mb_release,
-	.unlocked_ioctl - mb_ioctl,	
+	.unlocked_ioctl = mb_ioctl,	
 
 };
 
@@ -79,15 +82,13 @@ static int __init mb_init(void) {
 	//add proc + set size + user
 	our_proc_file = proc_create(PROCFS_ENTRY_FILENAME, 0644, NULL, &file_ops_4_our_proc_file);
     
-	if (our_proc_file == NULL) {static void show_bargraph(channel_stats_s *stats, int count)
-        pr_debug("Error: Could not initialize /proc/%s\n",  
-                 PROCFS_ENTRY_FILENAME);
+	if (our_proc_file == NULL) {
+        pr_debug("Error: Could not initialize /proc/%s\n", PROCFS_ENTRY_FILENAME);
  
         return -ENOMEM;  
     }  
     proc_set_size(our_proc_file, 80);
     proc_set_user(our_proc_file, GLOBAL_ROOT_UID, GLOBAL_ROOT_GID);  
- static void show_bargraph(channel_stats_s *stats, int count)
     pr_debug("/proc/%s created\n", PROCFS_ENTRY_FILENAME);  //like printk but only prints when /*#define DEBUG*/ is present
 	
 	
@@ -102,7 +103,7 @@ static int mb_open(struct inode *inode, struct file *file) {
 		pr_err("mailbox: channel with invalid minor was was called: minor %d", minor);
 		return -ENODEV;
 	}
-	static void show_bargraph(channel_stats_s *stats, int count)
+
 	file->private_data = &channels[minor];
 	pr_info("mailbox: channel %d opened\n", minor);
 	mb_build.channels[minor].is_open = true;
@@ -127,7 +128,7 @@ static int mb_release(struct inode *inode, struct file *file) {
 
 static void __exit mb_exit(void) {
 	remove_proc_entry(PROCFS_ENTRY_FILENAME, NULL);
-    pr_debug("/proc/%s removed\n", PROstatic void show_bargraph(channel_stats_s *stats, int count)CFS_ENTRY_FILENAME); 
+    pr_debug("/proc/%s removed\n",PROCFS_ENTRY_FILENAME); 
 
 	unregister_chrdev(major, "mailbox");
 	printk("Goodbye - Major Device Number: %d\n", major);

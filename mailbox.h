@@ -12,7 +12,14 @@
 #include <linux/proc_fs.h>  
 #include <linux/sched.h>  
 #include <linux/uaccess.h>
- 
+
+
+#define MB_FLUSH _IO('m', 1)
+#define MB_FLUSH_ALL _IO('m', 2)
+#define MB_GET_COUNT _IOR('m', 3, int)
+#define MB_SET_MAX _IOW('m', 4, int)
+
+
 #include <linux/version.h>  
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
  
@@ -41,11 +48,7 @@ typedef struct {
 } mb_msg_s;
 
 
-//circular fifo buffer needed
-/*typedef struct {
-	mb_msg_s messages[FIFO_LIMIT];
-	int head,tail,count,capacity;
-} mb_circ_fifo_s; */
+
 
 
 // channel for each mailbox
@@ -72,8 +75,16 @@ typedef struct {
 	dev_t dev_num;
 } mb_build_s;
 
+typedef struct {
+	int channel;
+	int queued;
+	int capacity;
+	unsigned long sent;
+	unsigned long received;
+} channel_stats_s;
+
 // declared in main, extern here for other files
 extern mb_build_s mb_build;
-extern mb_channel_s channel;
+extern mb_channel_s channels[CHANNELS_NUM];
 
 #endif

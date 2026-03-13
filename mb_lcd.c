@@ -2,7 +2,7 @@ include <stdio.h>
 include <stdlib.h>
 include <string.h>
 include <unistd.h>
-//include <.h>
+include "mailbox.h"
 //include <.h>
 
 #define LCD_ADD ox27
@@ -28,7 +28,7 @@ typedef struct {
 	int queued;
 	int capacity;
 	unsigned long sent;
-	unsigned lomg received;
+	unsigned long received;
 } channel_stats_s;
 
 
@@ -106,7 +106,6 @@ static int parse_proc(channel_stats_s *stats, int max_channels) {
 	if(!f) {
 	perror("Failed to open /proc/mailbox");
 	return -1;
-
 	}
 
 	// these are to take up the space needed for the proc header
@@ -116,9 +115,8 @@ static int parse_proc(channel_stats_s *stats, int max_channels) {
 	fgets(line, sizeof(line), f);
 	fgets(line, sizeof(line), f);
 
-
+fgets(line, sizeof(line), f);
 	fclose(f);
-
 
 }
 

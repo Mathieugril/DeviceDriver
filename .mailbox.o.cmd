@@ -1,0 +1,1 @@
+savedcmd_/home/mathieugril/Downloads/DeviceDriver/chardev/mailbox.o := aarch64-linux-gnu-ld -EL  -maarch64elf -z noexecstack --no-warn-rwx-segments   -r -o /home/mathieugril/Downloads/DeviceDriver/chardev/mailbox.o @/home/mathieugril/Downloads/DeviceDriver/chardev/mailbox.mod 
