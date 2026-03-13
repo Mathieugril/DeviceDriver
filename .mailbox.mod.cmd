@@ -1,1 +1,0 @@
-savedcmd_/home/mathieugril/Downloads/DeviceDriver/chardev/mailbox.mod := printf '%s\n'   mb_main.o mb_rw.o mb_proc.o mb_ioctl.o | awk '!x[$$0]++ { print("/home/mathieugril/Downloads/DeviceDriver/chardev/"$$0) }' > /home/mathieugril/Downloads/DeviceDriver/chardev/mailbox.mod
