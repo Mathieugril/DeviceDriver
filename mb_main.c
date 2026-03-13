@@ -28,7 +28,7 @@ static struct proc_ops file_ops_4_our_proc_file = {
 };
  
 #else  
-static const struct file_operations file_ops_4_our_proc_file = {
+static const struct file_operations file_ops_4_our_proc_file = {static void show_bargraph(channel_stats_s *stats, int count)
  
     .read = procfs_read,  
     .write = procfs_write,  
@@ -52,7 +52,7 @@ static struct file_operations mb_fops = {
 	.write = mb_write,
 	.open = mb_open,
 	.release = mb_release,
-//	.unlocked_ioctl - mb_ioctl,	
+	.unlocked_ioctl - mb_ioctl,	
 
 };
 
@@ -61,7 +61,7 @@ mb_channel_s channels[CHANNELS_NUM];
 static int __init mb_init(void) {
 	
 	
-	major = register_chrdev(0, "mailbox.c", &mb_fops);
+	major = register_chrdev(0, "mailbox", &mb_fops);
 	if(major < 0) {
 	  printk("main.c - [ERROR] registering chardev");
 	  return major;
@@ -79,7 +79,7 @@ static int __init mb_init(void) {
 	//add proc + set size + user
 	our_proc_file = proc_create(PROCFS_ENTRY_FILENAME, 0644, NULL, &file_ops_4_our_proc_file);
     
-	if (our_proc_file == NULL) {
+	if (our_proc_file == NULL) {static void show_bargraph(channel_stats_s *stats, int count)
         pr_debug("Error: Could not initialize /proc/%s\n",  
                  PROCFS_ENTRY_FILENAME);
  
@@ -87,7 +87,7 @@ static int __init mb_init(void) {
     }  
     proc_set_size(our_proc_file, 80);
     proc_set_user(our_proc_file, GLOBAL_ROOT_UID, GLOBAL_ROOT_GID);  
- 
+ static void show_bargraph(channel_stats_s *stats, int count)
     pr_debug("/proc/%s created\n", PROCFS_ENTRY_FILENAME);  //like printk but only prints when /*#define DEBUG*/ is present
 	
 	
@@ -102,7 +102,7 @@ static int mb_open(struct inode *inode, struct file *file) {
 		pr_err("mailbox: channel with invalid minor was was called: minor %d", minor);
 		return -ENODEV;
 	}
-	
+	static void show_bargraph(channel_stats_s *stats, int count)
 	file->private_data = &channels[minor];
 	pr_info("mailbox: channel %d opened\n", minor);
 	mb_build.channels[minor].is_open = true;
@@ -127,9 +127,9 @@ static int mb_release(struct inode *inode, struct file *file) {
 
 static void __exit mb_exit(void) {
 	remove_proc_entry(PROCFS_ENTRY_FILENAME, NULL);
-    pr_debug("/proc/%s removed\n", PROCFS_ENTRY_FILENAME); 
+    pr_debug("/proc/%s removed\n", PROstatic void show_bargraph(channel_stats_s *stats, int count)CFS_ENTRY_FILENAME); 
 
-	unregister_chrdev(major, "main.c");
+	unregister_chrdev(major, "mailbox");
 	printk("Goodbye - Major Device Number: %d\n", major);
 
 }

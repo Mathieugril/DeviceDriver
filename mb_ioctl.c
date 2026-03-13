@@ -4,7 +4,7 @@
 #include <linux/fs.h>
 #include <linux/uaccess.h>
 
-static int ioctl_flush(mb_channel_s *channnel) {
+static int ioctl_flush(mb_channel_s *channel) {
 
     channel->count = 0;
     channel->tail = 0;
@@ -16,13 +16,13 @@ static int ioctl_flush(mb_channel_s *channnel) {
 
 }
 
-static int ioctl_flush_all(mb_channel_s *channnel) {
+static int ioctl_flush_all(mb_channel_s *channel) {
 
     for(int i = 0; i < CHANNELS_NUM; i++) {
-    channels[i]->count = 0;
-    channels[i]->tail = 0;
-    channels[i]->head = 0;
-    wake_up_interruptible(&channels[i]->write_queue);
+    channels[i].count = 0;
+    channels[i].tail = 0;
+    channels[i].head = 0;
+    wake_up_interruptible(&channels[i].write_queue);
     }
     pr_info("mailbox: flushed all channels\n");
     return 0;
@@ -52,9 +52,9 @@ long mb_ioctl(struct file *file, unsigned int cmd, unsigned long arg) {
 	case MB_FLUSH:
 		return ioctl_flush(channel);
 		break;
-    case MB_FLUSH_ALL:
-        return ioctl_flush_all();
-        break;
+   	case MB_FLUSH_ALL:
+        	return ioctl_flush_all();
+        	break;
 	case MB_GET_COUNT:
 		return ioctl_get_count(channel, arg);
 		break;
