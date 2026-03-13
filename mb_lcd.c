@@ -65,13 +65,33 @@ static void lcd_string(const char *str) {
 }
 
 
-//lcd set cursr
-//
-// lcd clear
+static void lcd_set_cursor(int row, int col) {
+	int row_offsets[] = {0x00, 0x40, 0x14, 0x54};
+	lcd_cmd(0x80 | (row_offsets[row] + col));
+
+}
+
+static void lcd_clear(void) {
+	lcd_command(0x01);
+	usleep(2000);
+}
 
 static int lcd_init(void) {
 
 	i2c_fd = open(I2C_BUS, 0_RDWR);
+
+	if(i2c_fd < 0) {
+	perror("Failed to open I2C");
+	return -1;
+	}
+
+	if(ioctl(i2c_fd, I2C_SLAVE, LCD_ADD) < 0) {
+	perror("Failed to set address");
+	return -1;
+	}
+
+
+	// power on seq
 
   return 0;
 }
@@ -89,12 +109,16 @@ static int parse_proc(channel_stats_s *stats, int max_channels) {
 
 	}
 
-	
-
-
+	// these are to take up the space needed for the proc header
+	fgets(line, sizeof(line), f);
+	fgets(line, sizeof(line), f);
+	fgets(line, sizeof(line), f);
+	fgets(line, sizeof(line), f);
+	fgets(line, sizeof(line), f);
 
 
 	fclose(f);
+
 
 }
 
@@ -113,7 +137,19 @@ static void show_stats(channel_stats_s *stats, int count, int start) {
 
 int main(void) {
 
+	channel_stats_s stats[NUM_CHANNELS];
+	int count;
+	int screen = 0;
+	int stats_page = 0;
 
+	printf("Starting LCD on %s", I2C_BUS);
+
+	if(lvd_init() < 0){
+	return 1;
+	}
+
+
+	printf(" - LCD ready - \n")
 
 
 return 0;
