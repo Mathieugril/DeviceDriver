@@ -5,7 +5,7 @@
 //does as says (string.h + strcat unavailable in kernel)
 void copy_string_to_buffer(char* string,unsigned long *postion){  
     for(int i=0;;i++){
-        printk("%s  %lu   %d \n",string,*postion,i);
+        //printk("%s  %lu   %d \n",string,*postion,i);
         if(string[i]=='\0'||*postion>PROCFS_MAX_SIZE){
             break;
         }
@@ -28,20 +28,22 @@ void set_proc_buffer_contents(void){    //generates contents to put in proc file
     for(int i=0;i<PROCFS_MAX_SIZE;i++){ //initialise everything in strinng to prevent linux from thinking its a proc file
 		procfs_buffer[i]=' ';
 	}
+       copy_string_to_buffer("Mailbox driver stats\n=======================\n\nCH  Queued  Cap  sent   received\n\0",&current_postition);
+
     for(int i=0;i<CHANNELS_NUM;i++){    //actual contents start
-        mb_channel_s channel = mb_build.channels[i];
-        printk("postition; %lu",current_postition);
-        copy_string_to_buffer("channel \0",&current_postition);
-        copy_char_to_buffer(((i+1)+'0'),&current_postition);
-        copy_string_to_buffer("\n   head: \0",&current_postition);
-        copy_char_to_buffer((channel.head+'0'),&current_postition);
-        copy_string_to_buffer("\n   tail: \0",&current_postition);
-        copy_char_to_buffer((channel.tail+'0'),&current_postition);
-        copy_string_to_buffer("\n   count: \0",&current_postition);
-        copy_char_to_buffer((channel.count+'0'),&current_postition);
-        copy_string_to_buffer("\n   text: \0",&current_postition);
-        copy_string_to_buffer(channel.messages->text,&current_postition);
-        copy_string_to_buffer("\n \0",&current_postition);
+        mb_channel_s channel = channels[i];
+        char string[15];
+        snprintf(string,10,"%d     ",i);
+        copy_string_to_buffer(string,&current_postition);
+        snprintf(string,10,"%d      ",channel.count);
+        copy_string_to_buffer(string,&current_postition);
+        snprintf(string,10,"%d    ",channel.capacity);
+        copy_string_to_buffer(string,&current_postition);
+        snprintf(string,10,"%d        ",1);
+        copy_string_to_buffer(string,&current_postition);
+        snprintf(string,10,"%d\n",1);                
+        copy_string_to_buffer(string,&current_postition);
+    
     } //actual contents end
 
     procfs_buffer_size=current_postition;
@@ -50,10 +52,10 @@ void set_proc_buffer_contents(void){    //generates contents to put in proc file
 }
 
 //called every time the proc file is opened
- ssize_t procfs_read(struct file *filp, char __user *buffer, size_t length, loff_t *offset)  
+ ssize_t procfs_read(struct file *file, char __user *buffer, size_t length, loff_t *offset)  
 {   
     
-
+    
 	
     set_proc_buffer_contents(); //does as says
 
