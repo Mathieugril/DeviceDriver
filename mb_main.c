@@ -112,8 +112,7 @@ static int mb_open(struct inode *inode, struct file *file) {
 		pr_err("mailbox: channel with invalid minor was was called: minor %d", minor);
 		return -ENODEV;
 	}
-	channels[minor].capacity=16;
-	channels[minor+1].capacity=16;
+
 	file->private_data = &channels[minor];
 	pr_info("mailbox: channel %d opened\n", minor);
 	mb_build.channels[minor].is_open = true;
