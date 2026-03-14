@@ -11,7 +11,7 @@
 #define HAVE_PROC_OPS  
 #endif  
 
- 
+
 #define PROCFS_ENTRY_FILENAME "mailbox"  
 
 static ssize_t procfs_read(struct file *filp, char __user *buffer, size_t length, loff_t *offset);
@@ -59,6 +59,8 @@ static struct file_operations mb_fops = {
 
 };
 
+static struct class *cls; //used far below, in init, makes /dev entries
+
 mb_channel_s channels[CHANNELS_NUM];
 
 static int __init mb_init(void) {
@@ -70,13 +72,20 @@ static int __init mb_init(void) {
 	  return major;
 	}
 	printk("Welcome - Major Device Number: %d\n", major);
+	cls = class_create("mib");	
 	for (int i = 0; i < CHANNELS_NUM; i++) {
-	spin_lock_init(&channels[i].lock);
-	init_waitqueue_head(&channels[i].read_queue);
-	init_waitqueue_head(&channels[i]. write_queue);
-	channels[i].head = 0;
-	channels[i].tail = 0;	
-	channels[i].count = 0;
+		char dev_entry_name[10];
+
+		snprintf(dev_entry_name,10,"mailbox%d",i);
+		pr_debug("%s",dev_entry_name);
+
+		device_create(cls, NULL, MKDEV(major, i), NULL, dev_entry_name);  
+		spin_lock_init(&channels[i].lock);
+		init_waitqueue_head(&channels[i].read_queue);
+		init_waitqueue_head(&channels[i]. write_queue);
+		channels[i].head = 1;
+		channels[i].tail = 0;	
+		channels[i].count = 0;
 	}
 
 	//add proc + set size + user
@@ -103,7 +112,8 @@ static int mb_open(struct inode *inode, struct file *file) {
 		pr_err("mailbox: channel with invalid minor was was called: minor %d", minor);
 		return -ENODEV;
 	}
-
+	channels[minor].capacity=16;
+	channels[minor+1].capacity=16;
 	file->private_data = &channels[minor];
 	pr_info("mailbox: channel %d opened\n", minor);
 	mb_build.channels[minor].is_open = true;
@@ -133,6 +143,10 @@ static void __exit mb_exit(void) {
 	unregister_chrdev(major, "mailbox");
 	printk("Goodbye - Major Device Number: %d\n", major);
 
+	for(int i=0;i<CHANNELS_NUM;i++){
+	device_destroy(cls, MKDEV(major, i));
+	}  
+    class_destroy(cls);
 }
 
 
