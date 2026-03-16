@@ -115,14 +115,53 @@ static int parse_proc(channel_stats_s *stats, int max_channels) {
 	fgets(line, sizeof(line), f);
 	fgets(line, sizeof(line), f);
 
-fgets(line, sizeof(line), f);
+	while(fgets(line, sizeof(line), f) && count < max_channels) {
+	
+		int ch, queued, cap;
+		unsigned long sent, received;
+
+		if(sscanf(line, "%d %d %d %lu %lu", &ch, &queued, &cap, &sent, &received) == 5) {
+		
+			stats[count].channel = ch;
+			stats[count].queued = queued;
+			stats[count].capacity = cap;
+			stats[count].sent = sent;
+			stats[count].received = received;
+			count++;
+		}
+	}
 	fclose(f);
+	return count;
 
 }
 
 
 static void show_bargraph(channel_stats_s *stats, int count) {
+	
+	cha lines[21];
 
+	lcd_clear();
+
+	for(int i = 0; i < CHANNELS_NUM && i < count; i++) {
+		
+		int filled = stats[i].queued;
+		if(filled > 16) { filled = 16;}
+
+		lines[0] = '0' + stats[i].channel;
+		lines[1] = '=';
+		lines[2] = '[';
+
+		for(int j = 0; j < 16; j++) {
+			lines[3+j] = (j < filled) ? '#' : ' ';
+		}
+
+		lines[19] = ']';
+		lines[20] = '\0';
+
+		lcd_set_cursor(i, 0);
+		lcd_string(lines);
+
+	}
 
 
 
@@ -147,7 +186,8 @@ int main(void) {
 	}
 
 
-	printf(" - LCD ready - \n")
+	printf(" - LCD ready - \n");
+	show_bargraph(stats,count);
 
 
 return 0;
