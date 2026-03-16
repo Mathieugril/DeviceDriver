@@ -54,7 +54,7 @@ typedef struct {
 // channel for each mailbox
 typedef struct {
 	mb_msg_s messages[FIFO_LIMIT];
-	int head,tail,count,capacity;
+	int head,tail,count,capacity,sent,received;
 	//mb_circ_fifo_s fifo;
 	
 	wait_queue_head_t read_queue; // reader sleepssss when fifo empty

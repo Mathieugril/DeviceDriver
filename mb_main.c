@@ -86,6 +86,8 @@ static int __init mb_init(void) {
 		channels[i].head = 0;
 		channels[i].tail = 0;	
 		channels[i].count = 0;
+		channels[i].sent = 0;	
+		channels[i].received = 0;
 	}
 
 	//add proc + set size + user

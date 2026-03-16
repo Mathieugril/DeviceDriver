@@ -25,8 +25,9 @@ ssize_t mb_read (struct file *file, char __user *buffer, size_t length, loff_t *
 
 	channel->head = (channel->head + 1) % FIFO_LIMIT;
 	channel->count--;
+	channel->received++;
 	pr_info("mailbox: read message - %s, count = %d\n",channel->messages[channel->head].text,channel->count);
-	
+
 
 	
 
@@ -54,9 +55,9 @@ ssize_t mb_write (struct file *file, const char __user *buffer, size_t length, l
 		return -EFAULT;
 	}
 	channel->tail = (channel->tail + 1) % FIFO_LIMIT;
-
 	pr_info( "mailbox: recieved message, count = %d\n", channel->count);	
 	channel->count++;
+	channel->sent++;
 	wake_up_interruptible(&channel->read_queue);
 	return length; 
 
