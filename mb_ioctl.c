@@ -4,7 +4,7 @@
 #include <linux/fs.h>
 #include <linux/uaccess.h>
 
-
+extern mb_channel_s channels[CHANNELS_NUM];
 
 static int ioctl_flush(mb_channel_s *channel) {
 

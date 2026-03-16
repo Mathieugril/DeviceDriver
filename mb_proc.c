@@ -1,5 +1,7 @@
 #include "mailbox.h"
 
+extern mb_build_s mb_build;
+extern mb_channel_s channels[CHANNELS_NUM];// declared in main, extern here for other files
 
 
 //does as says (string.h + strcat unavailable in kernel)

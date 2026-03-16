@@ -73,7 +73,7 @@ static int __init mb_init(void) {
 	}
 	printk("Welcome - Major Device Number: %d\n", major);
 	cls = class_create("mailbox");	
-	for (int i = 0; i < CHANNELS_NUM; i++) {
+	for (int i = 1; i < CHANNELS_NUM; i++) {
 		char dev_entry_name[10];
 
 		snprintf(dev_entry_name,10,"mailbox%d",i);

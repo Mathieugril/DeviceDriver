@@ -1,11 +1,14 @@
-include <stdio.h>
-include <stdlib.h>
-include <string.h>
-include <unistd.h>
-include "mailbox.h"
-//include <.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <linux/i2c-dev.h>
+#include "mailbox.h"
 
-#define LCD_ADD ox27
+
+#define LCD_ADD 0x27
 #define LCD_COL 20
 #define LCD_ROW 4
 #define I2C_BUS "/dev/i2c-1"
@@ -15,14 +18,17 @@ include "mailbox.h"
 
 
 #define LCD_BACKLIGHT 0x08
-#define LCD_ENABLE 0x04
+#define LCD_ENABLE 0x04	
+//show_bargraph(stats,count);
+
+
 #define LCD_RW 0x02
 #define LCD_RS 0x01
 
 
 int i2c_fd;
 
-
+/*
 typedef struct {
 	int channel;
 	int queued;
@@ -30,14 +36,14 @@ typedef struct {
 	unsigned long sent;
 	unsigned long received;
 } channel_stats_s;
-
+*/
 
 static void i2c_write_byte(unsigned char data) {
 	write(i2c_fd, &data, 1);
 }
 
 
-static void lcd_send_nibble(unsigned char nibble, unsinged char mode) {
+static void lcd_send_nibble(unsigned char nibble, unsigned char mode) {
 	unsigned char data = (nibble & 0xF0) | LCD_BACKLIGHT | mode;
 	i2c_write_byte(data | LCD_ENABLE);
 	usleep(500);
@@ -46,8 +52,8 @@ static void lcd_send_nibble(unsigned char nibble, unsinged char mode) {
 }
 
 
-static void lcd_send_byte(unsigned char byte, unsinged char mode) {
-	lcd_snd_nibble(byte & 0xF0, mode);
+static void lcd_send_byte(unsigned char byte, unsigned char mode) {
+	lcd_send_nibble(byte & 0xF0, mode);
 	lcd_send_nibble((byte << 4) & 0xF0, mode);
 }
 
@@ -72,13 +78,13 @@ static void lcd_set_cursor(int row, int col) {
 }
 
 static void lcd_clear(void) {
-	lcd_command(0x01);
+	lcd_cmd(0x01);
 	usleep(2000);
 }
 
 static int lcd_init(void) {
 
-	i2c_fd = open(I2C_BUS, 0_RDWR);
+	i2c_fd = open(I2C_BUS, O_RDWR);
 
 	if(i2c_fd < 0) {
 	perror("Failed to open I2C");
@@ -91,9 +97,22 @@ static int lcd_init(void) {
 	}
 
 
-	// power on seq
+	usleep(50000);
+	lcd_send_nibble(0x30, 0x00); usleep(5000);
+	lcd_send_nibble(0x30, 0x00); usleep(1000);
+ 	lcd_send_nibble(0x30, 0x00); usleep(1000); 
+	lcd_send_nibble(0x20, 0x00); usleep(1000);
 
-  return 0;
+
+	lcd_cmd(0x28); //
+	lcd_cmd(0x0C); // display on cursor off
+	lcd_cmd(0x06); // entry mode
+	lcd_clear;
+
+
+	return 0;
+
+
 }
 
 static int parse_proc(channel_stats_s *stats, int max_channels) {
@@ -138,7 +157,7 @@ static int parse_proc(channel_stats_s *stats, int max_channels) {
 
 static void show_bargraph(channel_stats_s *stats, int count) {
 	
-	cha lines[21];
+	char lines[21];
 
 	lcd_clear();
 
@@ -167,28 +186,37 @@ static void show_bargraph(channel_stats_s *stats, int count) {
 
 }
 
-static void show_stats(channel_stats_s *stats, int count, int start) {
+//static void show_stats(channel_stats_s *stats, int count, int start) {
 
 
-}
+//}
 
 int main(void) {
 
-	channel_stats_s stats[NUM_CHANNELS];
+	channel_stats_s stats[CHANNELS_NUM];
 	int count;
 	int screen = 0;
 	int stats_page = 0;
 
 	printf("Starting LCD on %s", I2C_BUS);
 
-	if(lvd_init() < 0){
+	if(lcd_init() < 0){
 	return 1;
 	}
 
 
 	printf(" - LCD ready - \n");
-	show_bargraph(stats,count);
 
+	while(1){
+
+	count = parse_proc(stats, CHANNELS_NUM);
+
+	if(count > 0) {
+		show_bargraph(stats,count);
+
+		sleep(1);
+	}
+	}
 
 return 0;
 }
