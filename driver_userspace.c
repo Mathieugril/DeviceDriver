@@ -6,90 +6,160 @@
 #include <sys/ioctl.h>
 #include <sys/wait.h>
 #include <errno.h>
-#include <time.h>
 
-/* ioctl commands — must match mailbox.h exactly */
+/* ioctl commands — must match mailbox.h */
 #define MB_FLUSH      _IO('m', 1)
 #define MB_FLUSH_ALL  _IO('m', 2)
 #define MB_GET_COUNT  _IOR('m', 3, int)
 #define MB_SET_MAX    _IOW('m', 4, int)
 
 #define NUM_CHANNELS  5
-#define NUM_MESSAGES  10   /* how many messages each producer sends */
 
 /* ------------------------------------------------------------------ */
-/* PRODUCER: opens a channel, writes NUM_MESSAGES messages into it     */
+/* Print the main menu                                                  */
 /* ------------------------------------------------------------------ */
-void producer_process(int channel) {
-    char path[32];
-    snprintf(path, sizeof(path), "/dev/mailbox%d", channel);
-
-    int fd = open(path, O_WRONLY);
-    if (fd < 0) {
-        perror("producer: open failed");
-        exit(1);
-    }
-
-    for (int i = 0; i < NUM_MESSAGES; i++) {
-        char msg[128];
-        snprintf(msg, sizeof(msg), "[CH%d] message %d from PID %d", channel, i, getpid());
-
-        ssize_t ret = write(fd, msg, strlen(msg));
-        if (ret < 0) {
-            if (errno == EINTR) { i--; continue; }   /* retry on signal */
-            perror("producer: write failed");
-            break;
-        }
-        printf("[PRODUCER ch%d] sent: \"%s\"\n", channel, msg);
-        fflush(stdout);
-        usleep(200000);  /* 200ms between messages */
-    }
-
-    close(fd);
-    printf("[PRODUCER ch%d] done, PID %d exiting\n", channel, getpid());
-    exit(0);
+void print_menu(void) {
+    printf("\n╔══════════════════════════════════════╗\n");
+    printf("║       MAILBOX DRIVER DEMO MENU       ║\n");
+    printf("╠══════════════════════════════════════╣\n");
+    printf("║  1. Write a message to a channel     ║\n");
+    printf("║  2. Read a message from a channel    ║\n");
+    printf("║  3. Check message count (ioctl)      ║\n");
+    printf("║  4. Flush a channel (ioctl)          ║\n");
+    printf("║  5. Flush ALL channels (ioctl)       ║\n");
+    printf("║  6. Show /proc/mailbox stats         ║\n");
+    printf("║  7. Run multi-process demo           ║\n");
+    printf("║  8. Exit                             ║\n");
+    printf("╚══════════════════════════════════════╝\n");
+    printf("Enter choice: ");
 }
 
 /* ------------------------------------------------------------------ */
-/* CONSUMER: opens a channel, reads messages until producer is done    */
+/* Pick a channel                                                       */
 /* ------------------------------------------------------------------ */
-void consumer_process(int channel, int expected_msgs) {
+int pick_channel(void) {
+    int ch;
+    while (1) {
+        printf("Enter channel (0-%d): ", NUM_CHANNELS - 1);
+        scanf("%d", &ch);
+        if (ch >= 0 && ch < NUM_CHANNELS) return ch;
+        printf("Invalid channel. Try again.\n");
+    }
+}
+
+/* ------------------------------------------------------------------ */
+/* Open a device file                                                   */
+/* ------------------------------------------------------------------ */
+int open_channel(int channel, int flags) {
     char path[32];
     snprintf(path, sizeof(path), "/dev/mailbox%d", channel);
-
-    int fd = open(path, O_RDONLY);
+    int fd = open(path, flags);
     if (fd < 0) {
-        perror("consumer: open failed");
-        exit(1);
+        perror("Failed to open channel");
     }
+    return fd;
+}
 
-    for (int i = 0; i < expected_msgs; i++) {
-        char buf[256];
-        memset(buf, 0, sizeof(buf));
+/* ------------------------------------------------------------------ */
+/* 1. Write a message                                                   */
+/* ------------------------------------------------------------------ */
+void do_write(void) {
+    int ch = pick_channel();
+    int fd = open_channel(ch, O_WRONLY);
+    if (fd < 0) return;
 
-        ssize_t ret = read(fd, buf, sizeof(buf) - 1);
-        if (ret < 0) {
-            if (errno == EINTR) { i--; continue; }   /* retry on signal */
-            perror("consumer: read failed");
-            break;
-        }
+    char msg[256];
+    printf("Enter message to send: ");
+    getchar(); // flush newline
+    fgets(msg, sizeof(msg), stdin);
+    msg[strcspn(msg, "\n")] = '\0'; // remove trailing newline
+
+    ssize_t ret = write(fd, msg, strlen(msg));
+    if (ret < 0) {
+        perror("Write failed");
+    } else {
+        printf("[OK] Sent \"%s\" to channel %d\n", msg, ch);
+    }
+    close(fd);
+}
+
+/* ------------------------------------------------------------------ */
+/* 2. Read a message                                                    */
+/* ------------------------------------------------------------------ */
+void do_read(void) {
+    int ch = pick_channel();
+    int fd = open_channel(ch, O_RDONLY);
+    if (fd < 0) return;
+
+    char buf[256];
+    memset(buf, 0, sizeof(buf));
+
+    printf("Waiting for message on channel %d (will block if empty)...\n", ch);
+    ssize_t ret = read(fd, buf, sizeof(buf) - 1);
+    if (ret < 0) {
+        perror("Read failed");
+    } else {
         buf[ret] = '\0';
-        printf("[CONSUMER ch%d] received: \"%s\"\n", channel, buf);
-        fflush(stdout);
+        printf("[OK] Received from channel %d: \"%s\"\n", ch, buf);
     }
-
     close(fd);
-    printf("[CONSUMER ch%d] done, PID %d exiting\n", channel, getpid());
-    exit(0);
 }
 
 /* ------------------------------------------------------------------ */
-/* STATS: prints /proc/mailbox to the terminal                         */
+/* 3. Get message count via ioctl                                       */
 /* ------------------------------------------------------------------ */
-void show_proc_stats(void) {
+void do_get_count(void) {
+    int ch = pick_channel();
+    int fd = open_channel(ch, O_RDWR);
+    if (fd < 0) return;
+
+    int count = 0;
+    if (ioctl(fd, MB_GET_COUNT, &count) < 0) {
+        perror("MB_GET_COUNT failed");
+    } else {
+        printf("[OK] Channel %d has %d message(s) queued\n", ch, count);
+    }
+    close(fd);
+}
+
+/* ------------------------------------------------------------------ */
+/* 4. Flush a single channel via ioctl                                  */
+/* ------------------------------------------------------------------ */
+void do_flush(void) {
+    int ch = pick_channel();
+    int fd = open_channel(ch, O_RDWR);
+    if (fd < 0) return;
+
+    if (ioctl(fd, MB_FLUSH, 0) < 0) {
+        perror("MB_FLUSH failed");
+    } else {
+        printf("[OK] Channel %d flushed\n", ch);
+    }
+    close(fd);
+}
+
+/* ------------------------------------------------------------------ */
+/* 5. Flush ALL channels via ioctl                                      */
+/* ------------------------------------------------------------------ */
+void do_flush_all(void) {
+    int fd = open_channel(0, O_RDWR);
+    if (fd < 0) return;
+
+    if (ioctl(fd, MB_FLUSH_ALL, 0) < 0) {
+        perror("MB_FLUSH_ALL failed");
+    } else {
+        printf("[OK] All channels flushed\n");
+    }
+    close(fd);
+}
+
+/* ------------------------------------------------------------------ */
+/* 6. Show /proc/mailbox                                               */
+/* ------------------------------------------------------------------ */
+void do_show_proc(void) {
     FILE *f = fopen("/proc/mailbox", "r");
     if (!f) {
-        perror("show_proc_stats: cannot open /proc/mailbox");
+        perror("Cannot open /proc/mailbox");
         return;
     }
     printf("\n========== /proc/mailbox ==========\n");
@@ -97,144 +167,110 @@ void show_proc_stats(void) {
     while (fgets(line, sizeof(line), f)) {
         printf("%s", line);
     }
-    printf("====================================\n\n");
-    fflush(stdout);
+    printf("====================================\n");
     fclose(f);
 }
 
 /* ------------------------------------------------------------------ */
-/* IOCTL DEMO: shows flush and get_count working from userspace        */
+/* 7. Multi-process demo — forks producers and consumers               */
 /* ------------------------------------------------------------------ */
-void demo_ioctl(int channel) {
-    char path[32];
-    snprintf(path, sizeof(path), "/dev/mailbox%d", channel);
+void producer_process(int channel) {
+    int fd = open_channel(channel, O_WRONLY);
+    if (fd < 0) exit(1);
 
-    int fd = open(path, O_RDWR);
-    if (fd < 0) {
-        perror("demo_ioctl: open failed");
-        return;
-    }
-
-    /* get current message count */
-    int count = 0;
-    if (ioctl(fd, MB_GET_COUNT, &count) < 0) {
-        perror("demo_ioctl: MB_GET_COUNT failed");
-    } else {
-        printf("[IOCTL] channel %d has %d message(s) queued\n", channel, count);
-    }
-
-    /* flush the channel */
-    if (ioctl(fd, MB_FLUSH, 0) < 0) {
-        perror("demo_ioctl: MB_FLUSH failed");
-    } else {
-        printf("[IOCTL] channel %d flushed\n", channel);
-    }
-
-    close(fd);
-}
-
-/* ------------------------------------------------------------------ */
-/* BLOCKING DEMO: fills a channel to capacity to prove write blocks   */
-/* ------------------------------------------------------------------ */
-void blocking_demo(void) {
-    printf("\n--- BLOCKING DEMO: filling channel 4 to capacity ---\n");
-
-    int fd = open("/dev/mailbox4", O_WRONLY);
-    if (fd < 0) {
-        perror("blocking_demo: open failed");
-        return;
-    }
-
-    /* Write 16 messages (FIFO_LIMIT) as fast as possible */
-    for (int i = 0; i < 16; i++) {
-        char msg[64];
-        snprintf(msg, sizeof(msg), "block_test_msg_%d", i);
+    for (int i = 0; i < 5; i++) {
+        char msg[128];
+        snprintf(msg, sizeof(msg), "[CH%d] msg_%d from PID %d", channel, i, getpid());
         write(fd, msg, strlen(msg));
-        printf("[BLOCKING DEMO] wrote message %d to ch4\n", i);
+        printf("[PRODUCER ch%d] sent: \"%s\"\n", channel, msg);
         fflush(stdout);
+        usleep(300000); // 300ms between messages
     }
-
-    printf("[BLOCKING DEMO] channel 4 is now full. Next write will BLOCK...\n");
-    fflush(stdout);
-
-    /* This write will block until someone reads from channel 4 */
-    char *extra = "this_should_block";
-    printf("[BLOCKING DEMO] attempting one more write (should block)...\n");
-    fflush(stdout);
-    write(fd, extra, strlen(extra));
-    printf("[BLOCKING DEMO] unblocked!\n");
-
     close(fd);
+    exit(0);
 }
 
-/* ------------------------------------------------------------------ */
-/* MAIN                                                                */
-/* ------------------------------------------------------------------ */
-int main(int argc, char *argv[]) {
-    printf("============================================\n");
-    printf("  Mailbox Driver User-Space Demo\n");
-    printf("  PID: %d\n", getpid());
-    printf("============================================\n\n");
+void consumer_process(int channel) {
+    int fd = open_channel(channel, O_RDONLY);
+    if (fd < 0) exit(1);
 
-    /* Show initial state of /proc/mailbox */
-    show_proc_stats();
+    for (int i = 0; i < 5; i++) {
+        char buf[256];
+        memset(buf, 0, sizeof(buf));
+        ssize_t ret = read(fd, buf, sizeof(buf) - 1);
+        if (ret > 0) {
+            buf[ret] = '\0';
+            printf("[CONSUMER ch%d] got: \"%s\"\n", channel, buf);
+            fflush(stdout);
+        }
+    }
+    close(fd);
+    exit(0);
+}
+
+void do_multiprocess_demo(void) {
+    printf("\n--- Starting multi-process demo across all %d channels ---\n", NUM_CHANNELS);
+    printf("Forking 1 producer + 1 consumer per channel...\n\n");
 
     pid_t pids[NUM_CHANNELS * 2];
-    int pid_count = 0;
+    int count = 0;
 
-    /* Fork one producer per channel */
+    // Fork producers
     for (int ch = 0; ch < NUM_CHANNELS; ch++) {
         pid_t pid = fork();
-        if (pid < 0) {
-            perror("fork failed");
-            exit(1);
-        }
-        if (pid == 0) {
-            producer_process(ch);   /* child — never returns */
-        }
-        pids[pid_count++] = pid;
-        printf("[MAIN] spawned producer for channel %d (PID %d)\n", ch, pid);
+        if (pid == 0) producer_process(ch);
+        pids[count++] = pid;
     }
 
-    /* Small delay so producers have time to write some messages */
-    sleep(1);
+    sleep(1); // let producers write some messages first
 
-    /* Fork one consumer per channel */
+    // Fork consumers
     for (int ch = 0; ch < NUM_CHANNELS; ch++) {
         pid_t pid = fork();
-        if (pid < 0) {
-            perror("fork failed");
-            exit(1);
-        }
-        if (pid == 0) {
-            consumer_process(ch, NUM_MESSAGES);  /* child — never returns */
-        }
-        pids[pid_count++] = pid;
-        printf("[MAIN] spawned consumer for channel %d (PID %d)\n", ch, pid);
+        if (pid == 0) consumer_process(ch);
+        pids[count++] = pid;
     }
 
-    /* Parent polls /proc/mailbox every second while children run */
-    for (int i = 0; i < 5; i++) {
+    // Show stats while demo runs
+    for (int i = 0; i < 3; i++) {
         sleep(1);
-        show_proc_stats();
+        do_show_proc();
     }
 
-    /* Wait for all children to finish */
-    printf("[MAIN] waiting for all children...\n");
-    for (int i = 0; i < pid_count; i++) {
+    // Wait for all children
+    for (int i = 0; i < count; i++) {
         int status;
         waitpid(pids[i], &status, 0);
     }
 
-    /* Final ioctl demo */
-    printf("\n--- IOCTL DEMO ---\n");
-    for (int ch = 0; ch < NUM_CHANNELS; ch++) {
-        demo_ioctl(ch);
+    printf("\n--- Multi-process demo complete ---\n");
+}
+
+/* ------------------------------------------------------------------ */
+/* MAIN                                                                 */
+/* ------------------------------------------------------------------ */
+int main(void) {
+    printf("\nMailbox Driver - Interactive Demo\n");
+    printf("==================================\n");
+
+    int choice;
+    while (1) {
+        print_menu();
+        scanf("%d", &choice);
+
+        switch (choice) {
+            case 1: do_write();              break;
+            case 2: do_read();               break;
+            case 3: do_get_count();          break;
+            case 4: do_flush();              break;
+            case 5: do_flush_all();          break;
+            case 6: do_show_proc();          break;
+            case 7: do_multiprocess_demo();  break;
+            case 8:
+                printf("Goodbye!\n");
+                return 0;
+            default:
+                printf("Invalid choice. Try again.\n");
+        }
     }
-
-    /* Final stats */
-    show_proc_stats();
-
-    printf("[MAIN] demo complete.\n");
-    return 0;
 }
