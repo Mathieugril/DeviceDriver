@@ -39,7 +39,7 @@ void set_proc_buffer_contents(void){    //generates contents to put in proc file
         copy_string_to_buffer(string,&current_postition);
         snprintf(string,10,"%d      ",channel.count);
         copy_string_to_buffer(string,&current_postition);
-        snprintf(string,10,"%d    ",FIFO_LIMIT);
+        snprintf(string,10,"%d    ",channel.capacity);
         copy_string_to_buffer(string,&current_postition);
         snprintf(string,10,"%d        ",channel.sent);
         copy_string_to_buffer(string,&current_postition);

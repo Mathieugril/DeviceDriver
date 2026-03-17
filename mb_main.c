@@ -73,7 +73,7 @@ static int __init mb_init(void) {
 	}
 	printk("Welcome - Major Device Number: %d\n", major);
 	cls = class_create("mailbox");	
-	for (int i = 1; i < CHANNELS_NUM; i++) {
+	for (int i = 0; i < CHANNELS_NUM; i++) {
 		char dev_entry_name[10];
 
 		snprintf(dev_entry_name,10,"mailbox%d",i);
@@ -83,8 +83,9 @@ static int __init mb_init(void) {
 		spin_lock_init(&channels[i].lock);
 		init_waitqueue_head(&channels[i].read_queue);
 		init_waitqueue_head(&channels[i]. write_queue);
-		channels[i].head = 0;
-		channels[i].tail = 0;	
+		channels[i].head = NULL;
+		channels[i].tail = NULL;
+		channels[i].capacity = DEFAULT_FIFO_LIMIT;
 		channels[i].count = 0;
 		channels[i].sent = 0;	
 		channels[i].received = 0;

@@ -8,7 +8,7 @@
  #define PROCFS_MAX_SIZE 2048UL
 
 #define CHANNELS_NUM 5
-#define FIFO_LIMIT 16
+#define DEFAULT_FIFO_LIMIT 16
 #define MESSAGE_SIZE 256
 
 #define MB_FLUSH _IO('m', 1)
@@ -28,6 +28,11 @@ typedef struct {
 	char text[MESSAGE_SIZE];
 } mb_msg_s;
 
+typedef struct mb_msg_node {
+	mb_msg_s msg;
+	struct mb_msg_node *next;
+	struct mb_msg_node *prev;
+} mb_msg_node;
 
 typedef struct {
 	int channel;
@@ -50,6 +55,8 @@ typedef struct {
 #include <linux/sched.h>  
 #include <linux/uaccess.h>
 #include <linux/version.h>
+#include <linux/slab.h>
+
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
  
@@ -64,9 +71,11 @@ static unsigned long procfs_buffer_size = 0;
 
 // channel for each mailbox
 typedef struct {
-	mb_msg_s messages[FIFO_LIMIT];
-	int head,tail,count,capacity,sent,received;
+	int count,capacity,sent,received;
 	//mb_circ_fifo_s fifo;
+
+	mb_msg_node *head;
+	mb_msg_node *tail;
 	
 	wait_queue_head_t read_queue; // reader sleepssss when fifo empty
 	wait_queue_head_t write_queue; // writers sleep here when fifo full

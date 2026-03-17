@@ -9,27 +9,34 @@ ssize_t mb_write (struct file *file,const char __user *buffer, size_t length, lo
 
 
 ssize_t mb_read (struct file *file, char __user *buffer, size_t length, loff_t *offset){
-
+	
 	mb_channel_s *channel = file->private_data;
 	int msg_len;
+	mb_msg_node *node;
 
 	//block if empty
 	if(wait_event_interruptible(channel->read_queue, channel->count > 0)) {
 		return -ERESTARTSYS;
 	}
 
-	msg_len = strlen(channel->messages[channel->head].text);
-	if(copy_to_user( buffer, channel->messages[channel->head].text, msg_len)){
+	node = channel->head;
+
+	msg_len = node->msg.length;
+	if(copy_to_user( buffer, node->msg.text, msg_len)){
 		return -EFAULT;
 	}
 
-	channel->head = (channel->head + 1) % FIFO_LIMIT;
+	channel->head = node->next;
+	if (channel->head)
+		channel->head->prev = NULL;
+	else
+		channel->tail = NULL;
+
 	channel->count--;
 	channel->received++;
-	pr_info("mailbox: read message - %s, count = %d\n",channel->messages[channel->head].text,channel->count);
+	pr_info("mailbox: read message - %s, count = %d\n",node->msg.text,channel->count);
 
-
-	
+	kfree(node);
 
 	wake_up_interruptible(&channel->write_queue);
 	return msg_len;
@@ -38,6 +45,7 @@ ssize_t mb_read (struct file *file, char __user *buffer, size_t length, loff_t *
 ssize_t mb_write (struct file *file, const char __user *buffer, size_t length, loff_t *offset) {
 
 	mb_channel_s *channel = file->private_data;
+	mb_msg_node *node;
 
 	//prevent it from being too big
 	if(length > MESSAGE_SIZE){
@@ -47,17 +55,37 @@ ssize_t mb_write (struct file *file, const char __user *buffer, size_t length, l
 		return 0;
 	}
 
-	if(wait_event_interruptible(channel->write_queue, channel->count < FIFO_LIMIT)) {
+	if(wait_event_interruptible(channel->write_queue, channel->count < channel->capacity)) {
 		return -ERESTARTSYS;
 	}
 
-	if (copy_from_user(channel->messages[channel->tail].text, buffer, length)) {
+	node = kmalloc(sizeof(mb_msg_node), GFP_KERNEL);
+	if (!node) {
+		return -ENOMEM;
+	}
+
+	if (copy_from_user(node->msg.text, buffer, length)) {
+		kfree(node);
 		return -EFAULT;
 	}
-	channel->tail = (channel->tail + 1) % FIFO_LIMIT;
-	pr_info( "mailbox: recieved message, count = %d\n", channel->count);	
+
+	node->msg.length = length;
+	node->next = NULL;
+	node->prev = channel->tail;
+
+	if (channel->tail)
+		channel->tail->next = node;
+	else
+		channel->head = node;
+
+	channel->tail = node;
+
+
 	channel->count++;
 	channel->sent++;
+
+	pr_info( "mailbox: recieved message, count = %d\n", channel->count);
+
 	wake_up_interruptible(&channel->read_queue);
 	return length; 
 

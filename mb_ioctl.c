@@ -2,16 +2,26 @@
 
 #include "mailbox.h"
 #include <linux/fs.h>
-#include <linux/uaccess.h>
+#include <linux/uaccess.h> 
 
 extern mb_channel_s channels[CHANNELS_NUM];
 
+static void free_channel_messages(mb_channel_s *channel) {
+	mb_msg_node *node = channel->head;
+	while (node) {
+		mb_msg_node *next = node->next;
+		kfree(node);
+		node = next;
+	}
+	channel->head = NULL;
+	channel->tail = NULL;
+	channel->count = 0;
+}
+
 static int ioctl_flush(mb_channel_s *channel) {
 
-    channel->count = 0;
-    channel->tail = 0;
-    channel->head = 0;
 
+    free_channel_messages(channel);
     wake_up_interruptible(&channel->write_queue);
     pr_info("mailbox: flushed channel\n");
     return 0;
@@ -21,10 +31,8 @@ static int ioctl_flush(mb_channel_s *channel) {
 static int ioctl_flush_all(void) {
 
     for(int i = 0; i < CHANNELS_NUM; i++) {
-    channels[i].count = 0;
-    channels[i].tail = 0;
-    channels[i].head = 0;
-    wake_up_interruptible(&channels[i].write_queue);
+        free_channel_messages(&channels[i]);
+        wake_up_interruptible(&channels[i].write_queue);
     }
     pr_info("mailbox: flushed all channels\n");
     return 0;
