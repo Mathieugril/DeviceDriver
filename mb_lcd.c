@@ -186,10 +186,37 @@ static void show_bargraph(channel_stats_s *stats, int count) {
 
 }
 
-//static void show_stats(channel_stats_s *stats, int count, int start) {
+static void show_stats(channel_stats_s *stats, int count, int start) {
 
+	char lines[21];
+	int row = 0;
 
-//}
+	lcd_clear();
+
+	for(int i = start; i < start + 2 && i < count; i++) {
+
+		snprintf(lines, sizeof(lines), "CH=%d Count=%d/%d", stats[i].channel, stats[i].queued, stats[i].capacity);
+
+	while((int)strlen(lines) < 20) {
+		strcat(lines, " ");
+	}
+	lines[20] = '\0';
+	lcd_set_cursor(row, 0);
+	lcd_string(lines);
+	row++;
+
+	snprintf(lines, sizeof(lines), "R=%-8lu W=%-6lu", stats[i].received, stats[i].sent);
+
+	while((int)strlen(lines) < 20) {
+		strcat(lines, " ");
+	}
+	lines[20] = '\0';
+	lcd_set_cursor(row, 0);
+	lcd_string(lines);
+	row++;
+	}
+
+}
 
 int main(void) {
 
@@ -206,17 +233,31 @@ int main(void) {
 
 
 	printf(" - LCD ready - \n");
+	printf("Reading from proc file every %d seconds\n", DELAY);
+	printf("Press Ctrl+C to exit.\n");
 
 	while(1){
 
 	count = parse_proc(stats, CHANNELS_NUM);
 
-	if(count > 0) {
-		show_bargraph(stats,count);
+//	if(count > 0) {
 
-		sleep(1);
+	switch(screen) {
+		case 0:	
+		show_bargraph(stats,count);
+		break;
+
+		case 1:
+		show_stats(stats, count, stats_page);
+		stats_page = (stats_page + 2) % CHANNELS_NUM;
+		break;
 	}
+
+	screen = (screen + 1) % 2;
+	sleep(DELAY);
 	}
+
+	close(i2c_fd);
 
 return 0;
 }
