@@ -83,9 +83,12 @@ static int __init mb_init(void) {
 		spin_lock_init(&channels[i].lock);
 		init_waitqueue_head(&channels[i].read_queue);
 		init_waitqueue_head(&channels[i]. write_queue);
-		channels[i].head = 0;
-		channels[i].tail = 0;	
+		channels[i].head = NULL;
+		channels[i].tail = NULL;
+		channels[i].capacity = DEFAULT_FIFO_LIMIT;
 		channels[i].count = 0;
+		channels[i].sent = 0;	
+		channels[i].received = 0;
 	}
 
 	//add proc + set size + user

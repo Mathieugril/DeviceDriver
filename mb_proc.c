@@ -1,5 +1,7 @@
 #include "mailbox.h"
 
+extern mb_build_s mb_build;
+extern mb_channel_s channels[CHANNELS_NUM];// declared in main, extern here for other files
 
 
 //does as says (string.h + strcat unavailable in kernel)
@@ -39,9 +41,9 @@ void set_proc_buffer_contents(void){    //generates contents to put in proc file
         copy_string_to_buffer(string,&current_postition);
         snprintf(string,10,"%d    ",channel.capacity);
         copy_string_to_buffer(string,&current_postition);
-        snprintf(string,10,"%d        ",1);
+        snprintf(string,10,"%d        ",channel.sent);
         copy_string_to_buffer(string,&current_postition);
-        snprintf(string,10,"%d\n",1);                
+        snprintf(string,10,"%d\n",channel.received);                
         copy_string_to_buffer(string,&current_postition);
     
     } //actual contents end
