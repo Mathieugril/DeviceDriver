@@ -249,7 +249,7 @@ int main(void) {
 
 		case 1:
 		show_stats(stats, count, stats_page);
-		stats_page = (stats_page + 2) % CHANNELS_NUM;
+		stats_page = (stats_page + 2) % 4;
 		break;
 	}
 
