@@ -50,11 +50,25 @@ static int ioctl_get_count(mb_channel_s *channel, unsigned long arg) {
 }
 
 static int ioctl_set_max(mb_channel_s *channel, unsigned long arg) {
+    int new_max;
 
-    // needs to be done
-    //
-    return 0;
+    if (get_user(new_max, (int __user *)arg)) {
+        return -EFAULT;
     }
+
+    if (new_max <= 0) {
+        return -EINVAL;
+    }
+
+    if (new_max < channel->count) {
+        return -EINVAL;
+    }
+
+    channel->capacity = new_max;
+    wake_up_interruptible(&channel->write_queue);
+    pr_info("mailbox: set channel max capacity to %d\n", new_max);
+    return 0;
+}
 
 long mb_ioctl(struct file *file, unsigned int cmd, unsigned long arg) {
 
