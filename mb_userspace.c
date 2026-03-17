@@ -6,6 +6,7 @@
 #include <sys/ioctl.h>
 #include <sys/wait.h>
 #include <errno.h>
+#include <ctype.h>
 
 /* ioctl commands — must match mailbox.h */
 #define MB_FLUSH      _IO('m', 1)
@@ -24,14 +25,27 @@ void print_menu(void) {
     printf("╠══════════════════════════════════════╣\n");
     printf("║  1. Write a message to a channel     ║\n");
     printf("║  2. Read a message from a channel    ║\n");
-    printf("║  3. Check message count (ioctl)      ║\n");
-    printf("║  4. Flush a channel (ioctl)          ║\n");
-    printf("║  5. Flush ALL channels (ioctl)       ║\n");
-    printf("║  6. Show /proc/mailbox stats         ║\n");
-    printf("║  7. Run multi-process demo           ║\n");
-    printf("║  8. Exit                             ║\n");
+    printf("║  3. Read all messages from a channel ║\n");
+    printf("║  4. Check message count (ioctl)      ║\n");
+    printf("║  5. Flush a channel (ioctl)          ║\n");
+    printf("║  6. Flush ALL channels (ioctl)       ║\n");
+    printf("║  7. Show /proc/mailbox stats         ║\n");
+    printf("║  8. Run multi-process demo           ║\n");
+    printf("║  9. Exit                             ║\n");
     printf("╚══════════════════════════════════════╝\n");
     printf("Enter choice: ");
+}
+
+//prevents scanf from causing infinite loop (i hope)
+void scan_loop_fix(){
+    char c='0';
+    do{
+        c=getchar();
+    }
+    while(!isdigit(c));
+    ungetc(c,stdin);
+    printf("invalid input");
+    return;
 }
 
 /* ------------------------------------------------------------------ */
@@ -41,7 +55,7 @@ int pick_channel(void) {
     int ch;
     while (1) {
         printf("Enter channel (0-%d): ", NUM_CHANNELS - 1);
-        scanf("%d", &ch);
+        if(scanf("%d", &ch)==0)scan_loop_fix;
         if (ch >= 0 && ch < NUM_CHANNELS) return ch;
         printf("Invalid channel. Try again.\n");
     }
@@ -91,6 +105,15 @@ void do_read(void) {
     int fd = open_channel(ch, O_RDONLY);
     if (fd < 0) return;
 
+    int count = 0;
+    if (ioctl(fd, MB_GET_COUNT, &count) < 0) {
+        perror("MB_GET_COUNT failed");
+    }
+    else if(count==0){
+        printf("channel is empty\n");
+        return;
+    }
+
     char buf[256];
     memset(buf, 0, sizeof(buf));
 
@@ -101,6 +124,41 @@ void do_read(void) {
     } else {
         buf[ret] = '\0';
         printf("[OK] Received from channel %d: \"%s\"\n", ch, buf);
+    }
+    close(fd);
+    return;
+}
+
+
+//read all messages in given channels
+void do_read_all(void) {
+
+    int ch = pick_channel();
+    int fd = open_channel(ch, O_RDONLY);
+    if (fd < 0) return;
+    int count = 0;
+
+    while(1){
+
+        if (ioctl(fd, MB_GET_COUNT, &count) < 0) {
+            perror("MB_GET_COUNT failed");
+        }
+        else if(count==0){
+            printf("channel is empty\n");
+            return;
+        }
+
+        char buf[256];
+        memset(buf, 0, sizeof(buf));
+
+        printf("Waiting for message on channel %d (will block if empty)...\n", ch);
+        ssize_t ret = read(fd, buf, sizeof(buf) - 1);
+        if (ret < 0) {
+            perror("Read failed");
+        } else {
+            buf[ret] = '\0';
+            printf("[OK] Received from channel %d: \"%s\"\n", ch, buf);
+        }
     }
     close(fd);
 }
@@ -256,17 +314,18 @@ int main(void) {
     int choice;
     while (1) {
         print_menu();
-        scanf("%d", &choice);
+        if(scanf("%d", &choice)==0)scan_loop_fix();
 
         switch (choice) {
             case 1: do_write();              break;
             case 2: do_read();               break;
-            case 3: do_get_count();          break;
-            case 4: do_flush();              break;
-            case 5: do_flush_all();          break;
-            case 6: do_show_proc();          break;
-            case 7: do_multiprocess_demo();  break;
-            case 8:
+            case 3: do_read_all();           break;
+            case 4: do_get_count();          break;
+            case 5: do_flush();              break;
+            case 6: do_flush_all();          break;
+            case 7: do_show_proc();          break;
+            case 8: do_multiprocess_demo();  break;
+            case 9:
                 printf("Goodbye!\n");
                 return 0;
             default:

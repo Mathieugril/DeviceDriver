@@ -30,7 +30,7 @@ void set_proc_buffer_contents(void){    //generates contents to put in proc file
     for(int i=0;i<PROCFS_MAX_SIZE;i++){ //initialise everything in strinng to prevent linux from thinking its a proc file
 		procfs_buffer[i]=' ';
 	}
-       copy_string_to_buffer("Mailbox driver stats\n=======================\n\nCH  Queued  Cap  sent   received\n\0",&current_postition);
+       copy_string_to_buffer("Mailbox driver stats\n=======================================\n\nCH  Queued  Cap  sent   received\n\0",&current_postition);
 
     for(int i=0;i<CHANNELS_NUM;i++){    //actual contents start
         mb_channel_s channel = channels[i];
