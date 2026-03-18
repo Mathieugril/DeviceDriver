@@ -95,14 +95,3 @@ ssize_t procfs_write(struct file *file, const char __user *buffer, size_t len, l
  
     return procfs_buffer_size;  
 }  
-
-int procfs_open(struct inode *inode, struct file *file)
- 
-{  
-    return 0;  
-}  
- int procfs_close(struct inode *inode, struct file *file)  
-{
- 
-    return 0;  
-}  

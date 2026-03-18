@@ -16,8 +16,7 @@
 
 static ssize_t procfs_read(struct file *filp, char __user *buffer, size_t length, loff_t *offset);
 static ssize_t procfs_write(struct file *file, const char __user *buffer, size_t len, loff_t *off);
-static int procfs_open(struct inode *inode, struct file *file);
-static int procfs_close(struct inode *inode, struct file *file);
+
 
 
 #ifdef HAVE_PROC_OPS  
@@ -26,17 +25,13 @@ static struct proc_ops file_ops_4_our_proc_file = {
     .proc_read = procfs_read,  
     .proc_write = procfs_write,
  
-    .proc_open = procfs_open,  
-    .proc_release = procfs_close,  
 };
  
 #else  
 static const struct file_operations file_ops_4_our_proc_file = {  
     .read = procfs_read,  
     .write = procfs_write,  
-    .open = procfs_open,
- 
-    .release = procfs_close,  
+
 };  
 #endif  
 

@@ -56,6 +56,7 @@ int pick_channel(void) {
     while (1) {
         printf("Enter channel (0-%d): ", NUM_CHANNELS - 1);
         if(scanf("%d", &ch)==0)scan_loop_fix;
+        while (getchar()!='\n');        
         if (ch >= 0 && ch < NUM_CHANNELS) return ch;
         printf("Invalid channel. Try again.\n");
     }
@@ -123,7 +124,7 @@ void do_read(void) {
         perror("Read failed");
     } else {
         buf[ret] = '\0';
-        printf("[OK] Received from channel %d: \"%s\"\n", ch, buf);
+        printf("Received from channel %d: \"%s\"\n", ch, buf);
     }
     close(fd);
     return;
@@ -151,13 +152,13 @@ void do_read_all(void) {
         char buf[256];
         memset(buf, 0, sizeof(buf));
 
-        printf("Waiting for message on channel %d (will block if empty)...\n", ch);
+        //printf("Waiting for message on channel %d (will block if empty)...\n", ch);
         ssize_t ret = read(fd, buf, sizeof(buf) - 1);
         if (ret < 0) {
             perror("Read failed");
         } else {
             buf[ret] = '\0';
-            printf("[OK] Received from channel %d: \"%s\"\n", ch, buf);
+            printf("Received from channel %d: \"%s\"\n", ch, buf);
         }
     }
     close(fd);
@@ -175,7 +176,7 @@ void do_get_count(void) {
     if (ioctl(fd, MB_GET_COUNT, &count) < 0) {
         perror("MB_GET_COUNT failed");
     } else {
-        printf("[OK] Channel %d has %d message(s) queued\n", ch, count);
+        printf("Channel %d has %d message(s) queued\n", ch, count);
     }
     close(fd);
 }
@@ -191,7 +192,7 @@ void do_flush(void) {
     if (ioctl(fd, MB_FLUSH, 0) < 0) {
         perror("MB_FLUSH failed");
     } else {
-        printf("[OK] Channel %d flushed\n", ch);
+        printf("Channel %d flushed\n", ch);
     }
     close(fd);
 }
@@ -206,7 +207,7 @@ void do_flush_all(void) {
     if (ioctl(fd, MB_FLUSH_ALL, 0) < 0) {
         perror("MB_FLUSH_ALL failed");
     } else {
-        printf("[OK] All channels flushed\n");
+        printf("All channels flushed\n");
     }
     close(fd);
 }
@@ -315,7 +316,7 @@ int main(void) {
     while (1) {
         print_menu();
         if(scanf("%d", &choice)==0)scan_loop_fix();
-
+        while (getchar()!='\n');
         switch (choice) {
             case 1: do_write();              break;
             case 2: do_read();               break;
