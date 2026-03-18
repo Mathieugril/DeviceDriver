@@ -40,7 +40,7 @@ static const struct file_operations file_ops_4_our_proc_file = {
 };  
 #endif  
 
-mb_build_s mb_build;
+//mb_build_s mb_build;
 
 static int major;
 static int mb_open(struct inode *inode, struct file *file); 
@@ -48,7 +48,7 @@ static int mb_release(struct inode *inode, struct file *file);
 extern ssize_t mb_read (struct file *file, char __user *buffer, size_t length, loff_t *offset);
 extern ssize_t mb_write (struct file *file, const char __user *buffer, size_t length, loff_t *offset);
 extern long mb_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
-
+extern void free_channel_messages(mb_channel_s *channel);
 
 static struct file_operations mb_fops = {
 	.read = mb_read,
@@ -118,7 +118,7 @@ static int mb_open(struct inode *inode, struct file *file) {
 
 	file->private_data = &channels[minor];
 	pr_info("mailbox: channel %d opened\n", minor);
-	mb_build.channels[minor].is_open = true;
+	channels[minor].is_open = true;
 
 
 	return 0;
@@ -146,6 +146,7 @@ static void __exit mb_exit(void) {
 	printk("Goodbye - Major Device Number: %d\n", major);
 
 	for(int i=0;i<CHANNELS_NUM;i++){
+	free_channel_messages(&channels[i]);
 	device_destroy(cls, MKDEV(major, i));
 	}  
     class_destroy(cls);

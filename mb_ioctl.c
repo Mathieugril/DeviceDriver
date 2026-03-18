@@ -6,7 +6,7 @@
 
 extern mb_channel_s channels[CHANNELS_NUM];
 
-static void free_channel_messages(mb_channel_s *channel) {
+ void free_channel_messages(mb_channel_s *channel) {
 	mb_msg_node *node = channel->head;
 	while (node) {
 		mb_msg_node *next = node->next;

@@ -87,17 +87,7 @@ typedef struct {
 } mb_channel_s;
 
 
-// build that registers chardev and gets major/minor numbers
-typedef struct {
-	mb_channel_s channels[CHANNELS_NUM];
-	struct class *dev_class;
-	struct cdev cdev; 	
-	dev_t dev_num;
-} mb_build_s;
 
 #endif
-/* declared in main, extern here for other files
-extern mb_build_s mb_build;
-extern mb_channel_s channels[CHANNELS_NUM];
-*/
+
 #endif
