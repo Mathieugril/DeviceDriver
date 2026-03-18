@@ -7,7 +7,6 @@ extern mb_channel_s channels[CHANNELS_NUM];// declared in main, extern here for 
 //does as says (string.h + strcat unavailable in kernel)
 void copy_string_to_buffer(char* string,unsigned long *postion){  
     for(int i=0;;i++){
-        //printk("%s  %lu   %d \n",string,*postion,i);
         if(string[i]=='\0'||*postion>PROCFS_MAX_SIZE){
             break;
         }
@@ -23,27 +22,32 @@ void copy_char_to_buffer(char character,unsigned long *postion){
     return;
 }
 
-// //void set_proc_buffer();
 
 void set_proc_buffer_contents(void){    //generates contents to put in proc file 
-    unsigned long current_postition=0;  //keeps track of postion in string. also erases anything already 
+    unsigned long current_postition = 0;  //keeps track of postion in string. also erases anything already
+    unsigned long flags;
+    mb_channel_s ch_stats;
+
     for(int i=0;i<PROCFS_MAX_SIZE;i++){ //initialise everything in strinng to prevent linux from thinking its a proc file
 		procfs_buffer[i]=' ';
 	}
        copy_string_to_buffer("Mailbox driver stats\n=======================================\n\nCH  Queued  Cap  sent   received\n\0",&current_postition);
 
     for(int i=0;i<CHANNELS_NUM;i++){    //actual contents start
-        mb_channel_s channel = channels[i];
         char string[15];
+
+	spin_lock_irqsave(&channels[i].lock, flags);
+        ch_stats = channels[i];
+	spin_unlock_irqrestore(&channels[i].lock, flags);
         snprintf(string,10,"%d     ",i);
         copy_string_to_buffer(string,&current_postition);
-        snprintf(string,10,"%d      ",channel.count);
+        snprintf(string,10,"%d      ",ch_stats.count);
         copy_string_to_buffer(string,&current_postition);
-        snprintf(string,10,"%d    ",channel.capacity);
+        snprintf(string,10,"%d    ",ch_stats.capacity);
         copy_string_to_buffer(string,&current_postition);
-        snprintf(string,10,"%d        ",channel.sent);
+        snprintf(string,10,"%d        ",ch_stats.sent);
         copy_string_to_buffer(string,&current_postition);
-        snprintf(string,10,"%d\n",channel.received);                
+        snprintf(string,10,"%d\n",ch_stats.received);                
         copy_string_to_buffer(string,&current_postition);
     
     } //actual contents end
@@ -56,11 +60,8 @@ void set_proc_buffer_contents(void){    //generates contents to put in proc file
 //called every time the proc file is opened
  ssize_t procfs_read(struct file *file, char __user *buffer, size_t length, loff_t *offset)  
 {   
-    
-    
-	
+    	
     set_proc_buffer_contents(); //does as says
-
 
     if (*offset || procfs_buffer_size == 0) { //prints when buffer is empty  
         pr_debug("procfs_read: END\n ");
@@ -69,7 +70,6 @@ void set_proc_buffer_contents(void){    //generates contents to put in proc file
         return 0;  
     }  
     procfs_buffer_size = min(procfs_buffer_size, length);   //makes sure the read size is not exceeded?
-    //printk("%s %lu",procfs_buffer,procfs_buffer_size);
     if (copy_to_user(buffer, procfs_buffer, procfs_buffer_size))//puts proc buffer contents in proc file
  
         return -EFAULT;  

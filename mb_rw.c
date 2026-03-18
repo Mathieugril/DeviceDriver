@@ -2,7 +2,6 @@
 #include <linux/fs.h>
 #include "mailbox.h"
 
-//static char text[MESSAGE_SIZE];
 
 ssize_t mb_read (struct file *file, char __user *buffer, size_t length, loff_t *offset);
 ssize_t mb_write (struct file *file,const char __user *buffer, size_t length, loff_t *offset); 
@@ -13,18 +12,23 @@ ssize_t mb_read (struct file *file, char __user *buffer, size_t length, loff_t *
 	mb_channel_s *channel = file->private_data;
 	int msg_len;
 	mb_msg_node *node;
+	unsigned long flags;
 
 	//block if empty
 	if(wait_event_interruptible(channel->read_queue, channel->count > 0)) {
 		return -ERESTARTSYS;
 	}
 
-	node = channel->head;
 
-	msg_len = node->msg.length;
-	if(copy_to_user( buffer, node->msg.text, msg_len)){
-		return -EFAULT;
+	spin_lock_irqsave(&channel->lock, flags);
+	if(channel->count == 0){
+		spin_unlock_irqrestore(&channel->lock, flags);
+		return -EAGAIN;
 	}
+
+
+	node = channel->head;
+	msg_len = node->msg.length;
 
 	channel->head = node->next;
 	if (channel->head)
@@ -34,8 +38,15 @@ ssize_t mb_read (struct file *file, char __user *buffer, size_t length, loff_t *
 
 	channel->count--;
 	channel->received++;
-	pr_info("mailbox: read message - %s, count = %d\n",node->msg.text,channel->count);
 
+	spin_unlock_irqrestore(&channel->lock,flags);
+
+	if(copy_to_user(buffer, node->msg.text, msg_len)) {
+		kfree(node);
+		return -EFAULT;
+	}
+
+	pr_info("mailbox: read message - %s, count = %d\n",node->msg.text,channel->count);
 	kfree(node);
 
 	wake_up_interruptible(&channel->write_queue);
@@ -46,6 +57,7 @@ ssize_t mb_write (struct file *file, const char __user *buffer, size_t length, l
 
 	mb_channel_s *channel = file->private_data;
 	mb_msg_node *node;
+	unsigned long flags;
 
 	//prevent it from being too big
 	if(length > MESSAGE_SIZE){
@@ -71,6 +83,15 @@ ssize_t mb_write (struct file *file, const char __user *buffer, size_t length, l
 
 	node->msg.length = length;
 	node->next = NULL;
+
+	spin_lock_irqsave(&channel->lock,flags);
+	if(channel->count >= channel->capacity) {
+		spin_unlock_irqrestore(&channel->lock, flags);
+		kfree(node);
+		return -EAGAIN;
+	}
+
+
 	node->prev = channel->tail;
 
 	if (channel->tail)
@@ -80,9 +101,9 @@ ssize_t mb_write (struct file *file, const char __user *buffer, size_t length, l
 
 	channel->tail = node;
 
-
 	channel->count++;
 	channel->sent++;
+	spin_unlock_irqrestore(&channel->lock, flags);
 
 	pr_info( "mailbox: recieved message, count = %d\n", channel->count);
 

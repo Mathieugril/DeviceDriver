@@ -20,8 +20,12 @@ extern mb_channel_s channels[CHANNELS_NUM];
 
 static int ioctl_flush(mb_channel_s *channel) {
 
+    unsigned long flags;
 
+    spin_lock_irqsave(&channel->lock, flags);
     free_channel_messages(channel);
+    spin_unlock_irqrestore(&channel->lock, flags);
+
     wake_up_interruptible(&channel->write_queue);
     pr_info("mailbox: flushed channel\n");
     return 0;
@@ -30,8 +34,13 @@ static int ioctl_flush(mb_channel_s *channel) {
 
 static int ioctl_flush_all(void) {
 
+    unsigned long flags;
+
     for(int i = 0; i < CHANNELS_NUM; i++) {
+	spin_lock_irqsave(&channels[i].lock, flags);
         free_channel_messages(&channels[i]);
+	spin_unlock_irqrestore(&channels[i].lock, flags);
+
         wake_up_interruptible(&channels[i].write_queue);
     }
     pr_info("mailbox: flushed all channels\n");
@@ -41,7 +50,13 @@ static int ioctl_flush_all(void) {
 
 static int ioctl_get_count(mb_channel_s *channel, unsigned long arg) {
 
+    unsigned long flags;
+
+
+    spin_lock_irqsave(&channel->lock, flags);
     int count = channel->count;
+    spin_unlock_irqrestore(&channel->lock, flags);
+
     if(put_user(count, (int __user *)arg)) {
         return -EFAULT;
     }
@@ -51,6 +66,7 @@ static int ioctl_get_count(mb_channel_s *channel, unsigned long arg) {
 
 static int ioctl_set_max(mb_channel_s *channel, unsigned long arg) {
     int new_max;
+    unsigned long flags;
 
     if (get_user(new_max, (int __user *)arg)) {
         return -EFAULT;
@@ -60,11 +76,15 @@ static int ioctl_set_max(mb_channel_s *channel, unsigned long arg) {
         return -EINVAL;
     }
 
+    spin_lock_irqsave(&channel->lock, flags);
     if (new_max < channel->count) {
+        spin_unlock_irqrestore(&channel->lock, flags);
         return -EINVAL;
     }
 
     channel->capacity = new_max;
+    spin_unlock_irqrestore(&channel->lock, flags);
+
     wake_up_interruptible(&channel->write_queue);
     pr_info("mailbox: set channel max capacity to %d\n", new_max);
     return 0;
