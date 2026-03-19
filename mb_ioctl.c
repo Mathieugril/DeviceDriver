@@ -5,6 +5,9 @@
 #include <linux/uaccess.h> 
 
 extern mb_channel_s channels[CHANNELS_NUM];
+void free_channel_messages(mb_channel_s *channel);
+long mb_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
+
 
  void free_channel_messages(mb_channel_s *channel) {
 	mb_msg_node *node = channel->head;

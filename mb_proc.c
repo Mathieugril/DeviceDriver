@@ -2,6 +2,14 @@
 
 
 extern mb_channel_s channels[CHANNELS_NUM];// declared in main, extern here for other files
+struct proc_dir_entry *our_proc_file;
+static char procfs_buffer[PROCFS_MAX_SIZE];
+static unsigned long procfs_buffer_size = 0;
+void copy_string_to_buffer(char *string, unsigned long *position);
+void copy_char_to_buffer(char character, unsigned long *position);
+void set_proc_buffer_contents(void);
+ssize_t procfs_read(struct file *file, char __user *buffer, size_t length, loff_t *offset);
+ssize_t procfs_write(struct file *file,const char __user *buffer, size_t len, loff_t *off);
 
 
 //does as says (string.h + strcat unavailable in kernel)
@@ -45,9 +53,9 @@ void set_proc_buffer_contents(void){    //generates contents to put in proc file
         copy_string_to_buffer(string,&current_postition);
         snprintf(string,10,"%d    ",ch_stats.capacity);
         copy_string_to_buffer(string,&current_postition);
-        snprintf(string,10,"%d        ",ch_stats.sent);
+        snprintf(string,10,"%lu        ",ch_stats.sent);
         copy_string_to_buffer(string,&current_postition);
-        snprintf(string,10,"%d\n",ch_stats.received);                
+        snprintf(string,10,"%lu\n",ch_stats.received);                
         copy_string_to_buffer(string,&current_postition);
     
     } //actual contents end

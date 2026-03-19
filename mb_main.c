@@ -6,6 +6,8 @@
 #include <linux/version.h>
 #include <linux/proc_fs.h>
 
+extern struct proc_dir_entry *our_proc_file;
+
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0)
  
 #define HAVE_PROC_OPS  
@@ -14,8 +16,8 @@
 
 #define PROCFS_ENTRY_FILENAME "mailbox"  
 
-static ssize_t procfs_read(struct file *filp, char __user *buffer, size_t length, loff_t *offset);
-static ssize_t procfs_write(struct file *file, const char __user *buffer, size_t len, loff_t *off);
+ssize_t procfs_read(struct file *filp, char __user *buffer, size_t length, loff_t *offset);
+ssize_t procfs_write(struct file *file, const char __user *buffer, size_t len, loff_t *off);
 
 
 
@@ -35,7 +37,7 @@ static const struct file_operations file_ops_4_our_proc_file = {
 };  
 #endif  
 
-//mb_build_s mb_build;
+
 
 static int major;
 static int mb_open(struct inode *inode, struct file *file); 

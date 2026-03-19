@@ -14,11 +14,8 @@
 #define MB_GET_COUNT  _IOR('m', 3, int)
 #define MB_SET_MAX    _IOW('m', 4, int)
 
-#define NUM_CHANNELS  5
+#define NUM_CHANNELS  4
 
-/* ------------------------------------------------------------------ */
-/* Print the main menu                                                  */
-/* ------------------------------------------------------------------ */
 void print_menu(void) {
     printf("\n╔══════════════════════════════════════╗\n");
     printf("║       MAILBOX DRIVER DEMO MENU       ║\n");
@@ -48,23 +45,18 @@ void scan_loop_fix(){
     return;
 }
 
-/* ------------------------------------------------------------------ */
-/* Pick a channel                                                       */
-/* ------------------------------------------------------------------ */
+
 int pick_channel(void) {
     int ch;
     while (1) {
         printf("Enter channel (0-%d): ", NUM_CHANNELS - 1);
-        if(scanf("%d", &ch)==0)scan_loop_fix;
+        if(scanf("%d", &ch)==0)scan_loop_fix();
         while (getchar()!='\n');        
         if (ch >= 0 && ch < NUM_CHANNELS) return ch;
         printf("Invalid channel. Try again.\n");
     }
 }
 
-/* ------------------------------------------------------------------ */
-/* Open a device file                                                   */
-/* ------------------------------------------------------------------ */
 int open_channel(int channel, int flags) {
     char path[32];
     snprintf(path, sizeof(path), "/dev/mailbox%d", channel);
@@ -75,9 +67,6 @@ int open_channel(int channel, int flags) {
     return fd;
 }
 
-/* ------------------------------------------------------------------ */
-/* 1. Write a message                                                   */
-/* ------------------------------------------------------------------ */
 void do_write(void) {
     int ch = pick_channel();
     int fd = open_channel(ch, O_WRONLY);
@@ -98,9 +87,6 @@ void do_write(void) {
     close(fd);
 }
 
-/* ------------------------------------------------------------------ */
-/* 2. Read a message                                                    */
-/* ------------------------------------------------------------------ */
 void do_read(void) {
     int ch = pick_channel();
     int fd = open_channel(ch, O_RDONLY);
@@ -112,6 +98,7 @@ void do_read(void) {
     }
     else if(count==0){
         printf("channel is empty\n");
+	flose(fd);
         return;
     }
 

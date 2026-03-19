@@ -132,7 +132,6 @@ static int parse_proc(channel_stats_s *stats, int max_channels) {
 	fgets(line, sizeof(line), f);
 	fgets(line, sizeof(line), f);
 	fgets(line, sizeof(line), f);
-	fgets(line, sizeof(line), f);
 
 	while(fgets(line, sizeof(line), f) && count < max_channels) {
 	

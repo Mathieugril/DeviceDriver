@@ -7,7 +7,7 @@
 
  #define PROCFS_MAX_SIZE 2048UL
 
-#define CHANNELS_NUM 5
+#define CHANNELS_NUM 4
 #define DEFAULT_FIFO_LIMIT 16
 #define MESSAGE_SIZE 256
 
@@ -22,7 +22,7 @@
 #include <stddef.h>
 #endif
 
-// single message that will be stored in fifo buffer
+
 typedef struct {
 	size_t length;
 	char text[MESSAGE_SIZE];
@@ -44,7 +44,7 @@ typedef struct {
 
 
 
-#ifdef __KERNEL__ //every thing in it is just for kernal space
+#ifdef __KERNEL__ 
 #include <linux/cdev.h>
 #include <linux/wait.h>
 #include <linux/kernel.h>
@@ -63,27 +63,23 @@ typedef struct {
 #include <linux/minmax.h>  
 #endif
  
-// #define PROCFS_ENTRY_FILENAME "mailbox"  
-static struct proc_dir_entry *our_proc_file;
- 
-static char procfs_buffer[PROCFS_MAX_SIZE];  
-static unsigned long procfs_buffer_size = 0;
+  
 
-// channel for each mailbox
+
 typedef struct {
-	int count,capacity,sent,received;
-	//mb_circ_fifo_s fifo;
+	int count,capacity;
+	unsigned long sent,received;
+	
 
 	mb_msg_node *head;
 	mb_msg_node *tail;
 	
-	wait_queue_head_t read_queue; // reader sleepssss when fifo empty
-	wait_queue_head_t write_queue; // writers sleep here when fifo full
+	wait_queue_head_t read_queue; 
+	wait_queue_head_t write_queue; 
 	spinlock_t lock;
 	bool is_open;
 	
-	// proc stats needed
-	// gpio for leds needed
+
 } mb_channel_s;
 
 
