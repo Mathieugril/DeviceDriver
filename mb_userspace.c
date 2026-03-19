@@ -74,7 +74,6 @@ void do_write(void) {
 
     char msg[256];
     printf("Enter message to send: ");
-    getchar(); // flush newline
     fgets(msg, sizeof(msg), stdin);
     msg[strcspn(msg, "\n")] = '\0'; // remove trailing newline
 
@@ -288,8 +287,9 @@ int main(void) {
     int choice;
     while (1) {
         print_menu();
-        if(scanf("%d", &choice)==0)scan_loop_fix();
-        while (getchar()!='\n');
+        scanf("%d", &choice);
+        while (getchar() != '\n');
+
         switch (choice) {
             case 1: do_write();              break;
             case 2: do_read();               break;
