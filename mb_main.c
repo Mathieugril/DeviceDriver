@@ -98,7 +98,7 @@ static int __init mb_init(void) {
     }  
     proc_set_size(our_proc_file, 80);
     proc_set_user(our_proc_file, GLOBAL_ROOT_UID, GLOBAL_ROOT_GID);  
-    pr_debug("/proc/%s created\n", PROCFS_ENTRY_FILENAME);  //like printk but only prints when /*#define DEBUG*/ is present
+    pr_debug("/proc/%s created\n", PROCFS_ENTRY_FILENAME); 
 	
 	
 	

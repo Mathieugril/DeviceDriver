@@ -19,7 +19,7 @@
 
 #define LCD_BACKLIGHT 0x08
 #define LCD_ENABLE 0x04	
-//show_bargraph(stats,count);
+
 
 
 #define LCD_RW 0x02
@@ -27,16 +27,6 @@
 
 
 int i2c_fd;
-
-/*
-typedef struct {
-	int channel;
-	int queued;
-	int capacity;
-	unsigned long sent;
-	unsigned long received;
-} channel_stats_s;
-*/
 
 static void i2c_write_byte(unsigned char data) {
 	write(i2c_fd, &data, 1);
@@ -104,9 +94,9 @@ static int lcd_init(void) {
 	lcd_send_nibble(0x20, 0x00); usleep(1000);
 
 
-	lcd_cmd(0x28); //
+	lcd_cmd(0x28); 
 	lcd_cmd(0x0C); // display on cursor off
-	lcd_cmd(0x06); // entry mode
+	lcd_cmd(0x06); 
 	lcd_clear;
 
 
@@ -127,7 +117,6 @@ static int parse_proc(channel_stats_s *stats, int max_channels) {
 	return -1;
 	}
 
-	// these are to take up the space needed for the proc header
 	fgets(line, sizeof(line), f);
 	fgets(line, sizeof(line), f);
 	fgets(line, sizeof(line), f);
@@ -239,7 +228,6 @@ int main(void) {
 
 	count = parse_proc(stats, CHANNELS_NUM);
 
-//	if(count > 0) {
 
 	switch(screen) {
 		case 0:	

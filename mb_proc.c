@@ -1,7 +1,7 @@
 #include "mailbox.h"
 
 
-extern mb_channel_s channels[CHANNELS_NUM];// declared in main, extern here for other files
+extern mb_channel_s channels[CHANNELS_NUM];
 struct proc_dir_entry *our_proc_file;
 static char procfs_buffer[PROCFS_MAX_SIZE];
 static unsigned long procfs_buffer_size = 0;
@@ -12,7 +12,7 @@ ssize_t procfs_read(struct file *file, char __user *buffer, size_t length, loff_
 ssize_t procfs_write(struct file *file,const char __user *buffer, size_t len, loff_t *off);
 
 
-//does as says (string.h + strcat unavailable in kernel)
+
 void copy_string_to_buffer(char* string,unsigned long *postion){  
     for(int i=0;;i++){
         if(string[i]=='\0'||*postion>PROCFS_MAX_SIZE){
@@ -32,12 +32,12 @@ void copy_char_to_buffer(char character,unsigned long *postion){
 
 
 void set_proc_buffer_contents(void){    //generates contents to put in proc file 
-    unsigned long current_postition = 0;  //keeps track of postion in string. also erases anything already
+    unsigned long current_postition = 0;  
     unsigned long flags;
     mb_channel_s ch_stats;
 
-    for(int i=0;i<PROCFS_MAX_SIZE;i++){ //initialise everything in strinng to prevent linux from thinking its a proc file
-		procfs_buffer[i]=' ';
+    for(int i=0;i<PROCFS_MAX_SIZE;i++){ 
+	procfs_buffer[i]=' ';
 	}
        copy_string_to_buffer("Mailbox driver stats\n=======================================\n\nCH  Queued  Cap  sent   received\n\0",&current_postition);
 
@@ -69,15 +69,14 @@ void set_proc_buffer_contents(void){    //generates contents to put in proc file
  ssize_t procfs_read(struct file *file, char __user *buffer, size_t length, loff_t *offset)  
 {   
     	
-    set_proc_buffer_contents(); //does as says
-
-    if (*offset || procfs_buffer_size == 0) { //prints when buffer is empty  
+    set_proc_buffer_contents(); 
+    if (*offset || procfs_buffer_size == 0) {   
         pr_debug("procfs_read: END\n ");
  
         *offset = 0;  
         return 0;  
     }  
-    procfs_buffer_size = min(procfs_buffer_size, length);   //makes sure the read size is not exceeded?
+    procfs_buffer_size = min(procfs_buffer_size, length);  
     if (copy_to_user(buffer, procfs_buffer, procfs_buffer_size))//puts proc buffer contents in proc file
  
         return -EFAULT;  
@@ -89,7 +88,6 @@ void set_proc_buffer_contents(void){    //generates contents to put in proc file
  
 }  
 
-//not really used, can change proc buffers contents, but thats redone every read call. probably called when proc file
 ssize_t procfs_write(struct file *file, const char __user *buffer, size_t len, loff_t *off)   
 {  
     procfs_buffer_size = min(PROCFS_MAX_SIZE, len);

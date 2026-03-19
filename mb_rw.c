@@ -59,7 +59,7 @@ ssize_t mb_write (struct file *file, const char __user *buffer, size_t length, l
 	mb_msg_node *node;
 	unsigned long flags;
 
-	//prevent it from being too big
+	
 	if(length > MESSAGE_SIZE){
 		length = MESSAGE_SIZE;
 	}

@@ -33,7 +33,7 @@ void print_menu(void) {
     printf("Enter choice: ");
 }
 
-//prevents scanf from causing infinite loop (i hope)
+
 void scan_loop_fix(){
     char c='0';
     do{
@@ -117,7 +117,7 @@ void do_read(void) {
 }
 
 
-//read all messages in given channels
+
 void do_read_all(void) {
 
     int ch = pick_channel();
@@ -218,7 +218,7 @@ void producer_process(int channel) {
         write(fd, msg, strlen(msg));
         printf("[PRODUCER ch%d] sent: \"%s\"\n", channel, msg);
         fflush(stdout);
-        usleep(300000); // 300ms between messages
+        usleep(300000);
     }
     close(fd);
     exit(0);
@@ -255,23 +255,19 @@ void do_multiprocess_demo(void) {
         pids[count++] = pid;
     }
 
-    sleep(1); // let producers write some messages first
-
-    // fork consumers
+    sleep(1);    
     for (int ch = 0; ch < NUM_CHANNELS; ch++) {
         pid_t pid = fork();
         if (pid == 0) consumer_process(ch);
         pids[count++] = pid;
     }
 
-    // show stats while demo runs
-    for (int i = 0; i < 3; i++) {
+      for (int i = 0; i < 3; i++) {
         sleep(1);
         do_show_proc();
     }
 
-    // wait for all children
-    for (int i = 0; i < count; i++) {
+       for (int i = 0; i < count; i++) {
         int status;
         waitpid(pids[i], &status, 0);
     }
