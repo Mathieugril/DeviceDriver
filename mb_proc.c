@@ -81,7 +81,7 @@ void set_proc_buffer_contents(void){    //generates contents to put in proc file
     if (copy_to_user(buffer, procfs_buffer, procfs_buffer_size))//puts proc buffer contents in proc file
  
         return -EFAULT;  
-    *offset += procfs_buffer_size;  //i dont actually kn what the buffer size is.
+    *offset += procfs_buffer_size;  
 
  
     pr_debug("procfs_read: read %lu bytes\n", procfs_buffer_size);  

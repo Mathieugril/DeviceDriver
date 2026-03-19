@@ -8,7 +8,7 @@
 #include <errno.h>
 #include <ctype.h>
 
-/* ioctl commands — must match mailbox.h */
+
 #define MB_FLUSH      _IO('m', 1)
 #define MB_FLUSH_ALL  _IO('m', 2)
 #define MB_GET_COUNT  _IOR('m', 3, int)
@@ -98,7 +98,7 @@ void do_read(void) {
     }
     else if(count==0){
         printf("channel is empty\n");
-	flose(fd);
+	close(fd);
         return;
     }
 
@@ -139,8 +139,7 @@ void do_read_all(void) {
         char buf[256];
         memset(buf, 0, sizeof(buf));
 
-        //printf("Waiting for message on channel %d (will block if empty)...\n", ch);
-        ssize_t ret = read(fd, buf, sizeof(buf) - 1);
+	ssize_t ret = read(fd, buf, sizeof(buf) - 1);
         if (ret < 0) {
             perror("Read failed");
         } else {
@@ -151,9 +150,7 @@ void do_read_all(void) {
     close(fd);
 }
 
-/* ------------------------------------------------------------------ */
-/* 3. Get message count via ioctl                                       */
-/* ------------------------------------------------------------------ */
+
 void do_get_count(void) {
     int ch = pick_channel();
     int fd = open_channel(ch, O_RDWR);
@@ -168,9 +165,7 @@ void do_get_count(void) {
     close(fd);
 }
 
-/* ------------------------------------------------------------------ */
-/* 4. Flush a single channel via ioctl                                  */
-/* ------------------------------------------------------------------ */
+
 void do_flush(void) {
     int ch = pick_channel();
     int fd = open_channel(ch, O_RDWR);
@@ -184,9 +179,7 @@ void do_flush(void) {
     close(fd);
 }
 
-/* ------------------------------------------------------------------ */
-/* 5. Flush ALL channels via ioctl                                      */
-/* ------------------------------------------------------------------ */
+
 void do_flush_all(void) {
     int fd = open_channel(0, O_RDWR);
     if (fd < 0) return;
@@ -199,9 +192,7 @@ void do_flush_all(void) {
     close(fd);
 }
 
-/* ------------------------------------------------------------------ */
-/* 6. Show /proc/mailbox                                               */
-/* ------------------------------------------------------------------ */
+
 void do_show_proc(void) {
     FILE *f = fopen("/proc/mailbox", "r");
     if (!f) {
@@ -217,9 +208,7 @@ void do_show_proc(void) {
     fclose(f);
 }
 
-/* ------------------------------------------------------------------ */
-/* 7. Multi-process demo — forks producers and consumers               */
-/* ------------------------------------------------------------------ */
+
 void producer_process(int channel) {
     int fd = open_channel(channel, O_WRONLY);
     if (fd < 0) exit(1);
@@ -261,7 +250,6 @@ void do_multiprocess_demo(void) {
     pid_t pids[NUM_CHANNELS * 2];
     int count = 0;
 
-    // Fork producers
     for (int ch = 0; ch < NUM_CHANNELS; ch++) {
         pid_t pid = fork();
         if (pid == 0) producer_process(ch);
@@ -270,20 +258,20 @@ void do_multiprocess_demo(void) {
 
     sleep(1); // let producers write some messages first
 
-    // Fork consumers
+    // fork consumers
     for (int ch = 0; ch < NUM_CHANNELS; ch++) {
         pid_t pid = fork();
         if (pid == 0) consumer_process(ch);
         pids[count++] = pid;
     }
 
-    // Show stats while demo runs
+    // show stats while demo runs
     for (int i = 0; i < 3; i++) {
         sleep(1);
         do_show_proc();
     }
 
-    // Wait for all children
+    // wait for all children
     for (int i = 0; i < count; i++) {
         int status;
         waitpid(pids[i], &status, 0);
@@ -292,9 +280,7 @@ void do_multiprocess_demo(void) {
     printf("\n--- Multi-process demo complete ---\n");
 }
 
-/* ------------------------------------------------------------------ */
-/* MAIN                                                                 */
-/* ------------------------------------------------------------------ */
+
 int main(void) {
     printf("\nMailbox Driver - Interactive Demo\n");
     printf("==================================\n");
